@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: themoa-policy-search
+  profiles:
+    default: local
+  config:
+    import:
+      - optional:file:./src/main/resources/application-secret.yml
+      - optional:classpath:application-secret.yml
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:themoa_policy_search}?useUnicode=true&characterEncoding=utf8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USERNAME:themoa}
+    password: ${MYSQL_PASSWORD:themoa_password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+  thymeleaf:
+    cache: false
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        enabled: ${RAG_ENABLED:false}
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+      embedding:
+        enabled: ${RAG_ENABLED:false}
+        options:
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    vectorstore:
+      qdrant:
+        enabled: ${RAG_ENABLED:false}
+        initialize-schema: ${QDRANT_AUTO_CREATE_COLLECTION:false}
+        host: ${QDRANT_HOST:localhost}
+        port: ${QDRANT_GRPC_PORT:6334}
+        api-key: ${QDRANT_API_KEY:}
+        collection-name: ${QDRANT_COLLECTION_NAME:policies}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  admin-api-key: ${ADMIN_API_KEY:}
+  rag:
+    enabled: ${RAG_ENABLED:false}
+    collection-name: ${QDRANT_COLLECTION_NAME:policies}
+    auto-create-collection: ${QDRANT_AUTO_CREATE_COLLECTION:false}
+    openai-chat-model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+    openai-embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+  policy:
+    collection:
+      enabled: ${POLICY_COLLECTION_ENABLED:false}
+      cron: ${POLICY_COLLECTION_CRON:0 0 3 * * *}
+      page-size: ${POLICY_COLLECTION_PAGE_SIZE:100}
+      request-delay: ${POLICY_COLLECTION_REQUEST_DELAY:500ms}
+      max-retries: ${POLICY_COLLECTION_MAX_RETRIES:3}
+      connect-timeout: ${POLICY_COLLECTION_CONNECT_TIMEOUT:3s}
+      read-timeout: ${POLICY_COLLECTION_READ_TIMEOUT:10s}
+      youth-center:
+        base-url: ${YOUTH_CENTER_BASE_URL:https://www.youthcenter.go.kr}
+        api-key: ${YOUTH_CENTER_API_KEY:}
+      gov-service:
+        base-url: ${GOV_SERVICE_BASE_URL:http://apis.data.go.kr}
+        api-key: ${GOV_SERVICE_API_KEY:}
+      local-welfare:
+        base-url: ${LOCAL_WELFARE_BASE_URL:http://apis.data.go.kr}
+        api-key: ${LOCAL_WELFARE_API_KEY:}
+      central-welfare:
+        base-url: ${CENTRAL_WELFARE_BASE_URL:http://apis.data.go.kr}
+        api-key: ${CENTRAL_WELFARE_API_KEY:}
+
+logging:
+  level:
+    com.themoa.policysearch: INFO

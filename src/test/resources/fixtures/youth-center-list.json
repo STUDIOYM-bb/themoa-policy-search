@@ -1,0 +1,12 @@
+{
+  "youthPolicyList": [
+    {
+      "plcyNo": "YC-1",
+      "plcyNm": "청년 월세 지원",
+      "sprvsnInstCdNm": "수원시",
+      "plcySprtCn": "월세 일부 지원",
+      "aplyYmd": "2026.07.01 ~ 2026.07.31"
+    }
+  ],
+  "totalCount": 1
+}

@@ -1,0 +1,13 @@
+<response>
+  <body>
+    <items>
+      <item>
+        <servId>WF-1</servId>
+        <servNm>청년 생활안정 지원</servNm>
+        <jurMnofNm>보건복지부</jurMnofNm>
+        <서비스내용>생활비 지원</서비스내용>
+      </item>
+    </items>
+    <totalCount>1</totalCount>
+  </body>
+</response>

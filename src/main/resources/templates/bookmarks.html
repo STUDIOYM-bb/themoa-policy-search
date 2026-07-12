@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>관심 정책</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body data-page="bookmarks">
+<header class="topbar">
+  <a href="/" class="brand">themoa 정책 검색</a>
+  <nav>
+    <a href="/">정책 검색</a>
+    <a href="/bookmarks">관심 정책</a>
+    <a href="/calendar">정책 캘린더</a>
+    <a href="/dev-console">개발 확인</a>
+  </nav>
+</header>
+<main class="shell">
+  <div class="page-heading">
+    <h1>관심 정책</h1>
+    <a class="secondary-link" href="/">검색 화면으로 돌아가기</a>
+  </div>
+  <div id="error" class="notice danger" hidden></div>
+  <section id="results" class="results"></section>
+</main>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

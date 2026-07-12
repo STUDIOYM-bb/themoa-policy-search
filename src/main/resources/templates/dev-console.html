@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>개발 확인</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body data-page="dev">
+<header class="topbar">
+  <a href="/" class="brand">themoa 정책 검색</a>
+  <nav>
+    <a href="/">정책 검색</a>
+    <a href="/bookmarks">관심 정책</a>
+    <a href="/calendar">정책 캘린더</a>
+    <a href="/dev-console">개발 확인</a>
+  </nav>
+</header>
+<main class="shell">
+  <div class="page-heading">
+    <h1>로컬 개발 확인</h1>
+    <button id="refreshDevStatus" type="button">상태 새로고침</button>
+  </div>
+
+  <section class="dev-grid">
+    <article class="panel">
+      <h2>시스템 상태</h2>
+      <div id="devStatus" class="kv-list"></div>
+    </article>
+    <article class="panel">
+      <h2>관리자 작업</h2>
+      <label class="field-label" for="adminKey">관리자 키</label>
+      <input id="adminKey" type="password" autocomplete="off" placeholder="X-Admin-Key">
+      <div class="button-grid">
+        <button data-admin-action="/api/admin/policies/collect">전체 출처 수집</button>
+        <button data-admin-action="/api/admin/policies/collect/YOUTH_CENTER">온통청년 수집</button>
+        <button data-admin-action="/api/admin/policies/collect/GOV_SERVICE">행정안전부 공공서비스 수집</button>
+        <button data-admin-action="/api/admin/policies/collect/LOCAL_WELFARE">지자체 복지서비스 수집</button>
+        <button data-admin-action="/api/admin/policies/collect/CENTRAL_WELFARE">중앙부처 복지서비스 수집</button>
+        <button data-admin-action="/api/admin/policies/reindex">전체 정책 임베딩 대기열 등록</button>
+        <button data-admin-action="/api/admin/policies/embedding/process-pending">PENDING 임베딩 처리</button>
+        <button data-admin-action="/api/admin/policies/embedding/retry-failed">FAILED 임베딩 재시도</button>
+      </div>
+      <div id="adminResult" class="notice" hidden></div>
+    </article>
+  </section>
+
+  <section class="panel">
+    <h2>Qdrant 벡터 검색 확인</h2>
+    <form id="vectorSearchForm" class="search-form compact">
+      <input id="vectorQuery" required minlength="2" value="수원 청년 월세 지원">
+      <button type="submit">검색</button>
+    </form>
+    <div id="vectorResult" class="table-wrap"></div>
+  </section>
+
+  <section class="panel">
+    <h2>최근 수집 기록</h2>
+    <div id="collectionRuns" class="table-wrap"></div>
+  </section>
+</main>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

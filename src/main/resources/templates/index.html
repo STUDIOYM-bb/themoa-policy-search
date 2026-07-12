@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>themoa 정책 검색</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body data-page="home">
+<header class="topbar">
+  <a href="/" class="brand">themoa 정책 검색</a>
+  <nav>
+    <a href="/">정책 검색</a>
+    <a href="/bookmarks">관심 정책</a>
+    <a href="/calendar">정책 캘린더</a>
+    <a href="/dev-console">개발 확인</a>
+  </nav>
+</header>
+<main class="shell">
+  <section class="search-panel">
+    <div>
+      <p class="eyebrow">자연어 정책 검색</p>
+      <h1>나에게 맞는 정책 찾기</h1>
+    </div>
+    <form id="searchForm" class="search-form">
+      <input id="query" name="query" minlength="2" maxlength="300" required
+             placeholder="자연어로 상황을 입력하세요">
+      <button id="searchButton" type="submit">검색</button>
+    </form>
+    <div class="chips" aria-label="검색 예시">
+      <button type="button" data-example="수원 사는 27살 무직 청년이 받을 수 있는 지원금 알려줘">수원 무직 청년 지원금</button>
+      <button type="button" data-example="대학생이 받을 수 있는 생활비 정책 알려줘">대학생 생활비 정책</button>
+      <button type="button" data-example="서울에서 월세 사는 청년 주거 지원 찾아줘">서울 청년 주거 지원</button>
+    </div>
+    <div id="loading" class="loading-steps" hidden>
+      <span>검색어 분석 중</span>
+      <span>관련 정책 검색 중</span>
+      <span>신청 조건 확인 중</span>
+    </div>
+    <div id="error" class="notice danger" hidden></div>
+  </section>
+
+  <section class="setup-guide">
+    <div>
+      <p class="eyebrow">처음 실행 안내</p>
+      <h2>검색 결과가 0건이면 먼저 정책 데이터를 수집해야 합니다</h2>
+      <p class="muted">정책 검색은 외부 API 수집 후 MySQL 저장, 임베딩 처리 후 Qdrant 검색 순서로 동작합니다.</p>
+    </div>
+    <ol>
+      <li>상단의 <strong>개발 확인</strong>으로 이동합니다.</li>
+      <li>관리자 키를 입력하고 <strong>전체 출처 수집</strong>을 실행합니다.</li>
+      <li><strong>전체 정책 임베딩 대기열 등록</strong>을 실행합니다.</li>
+      <li><strong>PENDING 임베딩 처리</strong> 후 Qdrant 벡터 검색 결과를 확인합니다.</li>
+    </ol>
+    <a class="secondary-link" href="/dev-console">개발 확인으로 이동</a>
+  </section>
+
+  <section id="summary" class="summary-grid" hidden></section>
+  <section id="diagnostics" class="diagnostics" hidden></section>
+  <section id="followups" class="followups" hidden></section>
+  <section id="results" class="results"></section>
+</main>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

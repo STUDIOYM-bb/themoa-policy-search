@@ -1,0 +1,52 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS 설정 ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA 설정 ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans 설정 ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code 설정 ###
+.vscode/
+
+### 로컬 비밀값과 실행 데이터 ###
+.env
+.env.local
+.env.*
+!.env.example
+src/main/resources/application-secret.yml
+mysql-data/
+qdrant-storage/
+logs/
+*.log
+*.key
+*.pem
+*.p12
+*.jks
