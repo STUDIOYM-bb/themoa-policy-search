@@ -6,6 +6,8 @@ import com.themoa.policysearch.policy.collection.dto.PolicyCollectionResult;
 import com.themoa.policysearch.policy.collection.service.PolicyCollectionService;
 import com.themoa.policysearch.policy.domain.PolicySource;
 import com.themoa.policysearch.policy.rag.index.PolicyEmbeddingSyncService;
+import com.themoa.policysearch.policy.rag.index.PolicyEmbeddingSyncService.EmbeddingProcessResult;
+import com.themoa.policysearch.policy.rag.index.PolicyEmbeddingSyncService.EmbeddingQueueResult;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -37,26 +39,33 @@ public class PolicyAdminController {
         return ApiResponse.ok(collectionService.collect(source, "MANUAL"));
     }
 
+    @PostMapping("/collect/{source}/first-page")
+    public ApiResponse<PolicyCollectionResult> collectSourceFirstPage(@RequestHeader("X-Admin-Key") String key,
+                                                                      @PathVariable PolicySource source) {
+        requireAdmin(key);
+        return ApiResponse.ok(collectionService.collectFirstPage(source, "MANUAL_FIRST_PAGE"));
+    }
+
     @PostMapping("/retry-failed")
-    public ApiResponse<Integer> retryFailed(@RequestHeader("X-Admin-Key") String key) {
+    public ApiResponse<EmbeddingProcessResult> retryFailed(@RequestHeader("X-Admin-Key") String key) {
         requireAdmin(key);
         return ApiResponse.ok(embeddingSyncService.retryFailed());
     }
 
     @PostMapping("/reindex")
-    public ApiResponse<Integer> reindex(@RequestHeader("X-Admin-Key") String key) {
+    public ApiResponse<EmbeddingQueueResult> reindex(@RequestHeader("X-Admin-Key") String key) {
         requireAdmin(key);
         return ApiResponse.ok(embeddingSyncService.enqueueAll());
     }
 
     @PostMapping("/embedding/process-pending")
-    public ApiResponse<Integer> processPending(@RequestHeader("X-Admin-Key") String key) {
+    public ApiResponse<EmbeddingProcessResult> processPending(@RequestHeader("X-Admin-Key") String key) {
         requireAdmin(key);
         return ApiResponse.ok(embeddingSyncService.processPending());
     }
 
     @PostMapping("/embedding/retry-failed")
-    public ApiResponse<Integer> retryFailedEmbedding(@RequestHeader("X-Admin-Key") String key) {
+    public ApiResponse<EmbeddingProcessResult> retryFailedEmbedding(@RequestHeader("X-Admin-Key") String key) {
         requireAdmin(key);
         return ApiResponse.ok(embeddingSyncService.retryFailed());
     }

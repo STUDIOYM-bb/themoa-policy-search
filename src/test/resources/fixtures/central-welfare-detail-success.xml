@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wantedDtl>
+  <servId>C-1</servId>
+  <servNm>중앙 복지 서비스</servNm>
+  <jurMnofNm>보건복지부</jurMnofNm>
+  <sprtTrgtCn>전 국민</sprtTrgtCn>
+  <slctCritCn>선정 기준</slctCritCn>
+  <servDgst>중앙 복지 상세</servDgst>
+  <aplyMtdCn>온라인 신청</aplyMtdCn>
+  <sbmsnDcmntCn>신청서</sbmsnDcmntCn>
+  <aplyPrdCn>상시</aplyPrdCn>
+  <inqNum>129</inqNum>
+</wantedDtl>

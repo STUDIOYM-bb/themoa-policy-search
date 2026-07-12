@@ -16,19 +16,18 @@ public class PolicyDocumentBuilder {
         PolicyCondition condition = policy.getCondition();
         StringBuilder content = new StringBuilder();
         append(content, "정책명", policy.getTitle());
-        append(content, "주관 기관", policy.getAgencyName());
-        append(content, "출처", policy.getSourceType().name());
-        append(content, "지역", String.join(", ", regions));
         append(content, "분야", policy.getCategory().name());
+        append(content, "지역", String.join(", ", regions));
+        append(content, "핵심 내용", policy.getSummary());
         if (condition != null) {
             append(content, "연령 조건", age(condition));
-            append(content, "소득 조건", condition.getIncomeCondition());
             append(content, "취업 조건", condition.getEmploymentStatus());
-            append(content, "지원 대상", condition.getConditionSummary());
+            append(content, "학생 조건", condition.getStudentStatus() == null ? null : (condition.getStudentStatus() ? "학생 대상" : "학생 제한 없음"));
+            append(content, "소득 조건", condition.getIncomeCondition());
+            append(content, "선정 기준", condition.getConditionSummary());
         }
-        append(content, "지원 내용", policy.getSummary());
         append(content, "신청 기간", period(policy));
-        append(content, "공식 링크", policy.getOfficialUrl());
+        append(content, "기관", policy.getAgencyName());
         String body = content.toString().trim();
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("policyId", policy.getId());

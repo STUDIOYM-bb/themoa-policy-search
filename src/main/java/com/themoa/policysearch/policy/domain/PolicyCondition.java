@@ -40,6 +40,16 @@ public class PolicyCondition {
         this.needCheck = needCheck;
     }
 
+    void updateFrom(PolicyCondition other) {
+        this.minAge = other.minAge;
+        this.maxAge = other.maxAge;
+        this.employmentStatus = other.employmentStatus;
+        this.studentStatus = other.studentStatus;
+        this.incomeCondition = other.incomeCondition;
+        this.conditionSummary = other.conditionSummary;
+        this.needCheck = other.needCheck;
+    }
+
     void attachPolicy(Policy policy) {
         this.policy = policy;
     }

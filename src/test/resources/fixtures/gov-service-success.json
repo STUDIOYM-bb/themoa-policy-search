@@ -1,0 +1,27 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL_SERVICE"
+    },
+    "body": {
+      "totalCount": 1,
+      "items": {
+        "item": [
+          {
+            "serviceId": "GOV-1",
+            "serviceName": "공공서비스 혜택",
+            "agencyName": "행정안전부",
+            "region": "전국",
+            "category": "생활지원",
+            "target": "국민",
+            "supportContent": "혜택 정보 제공",
+            "selectionCriteria": "해당자",
+            "applicationMethod": "온라인",
+            "url": "https://example.test/gov"
+          }
+        ]
+      }
+    }
+  }
+}

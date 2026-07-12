@@ -100,8 +100,22 @@ function renderSearchSummary(data) {
     <article class="summary-card"><span>검색 후보</span><strong>${number(data.vectorCandidateCount)}건</strong></article>
     <article class="summary-card"><span>최종 결과</span><strong>${number(data.filteredResultCount)}건</strong></article>
     <article class="summary-card"><span>소요 시간</span><strong>${number(data.elapsedTimeMs)}ms</strong></article>
-    ${data.degraded ? `<article class="summary-card warning wide">현재 Qdrant 검색을 사용할 수 없어 MySQL 검색 결과를 보여주고 있습니다. ${escapeHtml(data.fallbackReason || "")}</article>` : ""}
+    ${data.degraded ? `<article class="summary-card warning wide">${escapeHtml(fallbackNotice(data))}</article>` : ""}
   `;
+}
+
+function fallbackNotice(data) {
+  const reason = data.fallbackReason || "";
+  if (reason.includes("Qdrant 검색 후보가 없어")) {
+    return "Qdrant 연결은 가능하지만 현재 검색어에 대한 벡터 후보가 없어 MySQL 검색으로 보완했습니다. 임베딩 PENDING이 남아 있다면 개발 확인에서 PENDING 임베딩 처리를 먼저 실행하세요.";
+  }
+  if (reason.includes("필터 후 결과가 부족")) {
+    return "Qdrant 검색 후 조건 필터를 통과한 결과가 부족해 MySQL 검색으로 보완했습니다.";
+  }
+  if (reason.includes("Qdrant 검색 실패")) {
+    return `Qdrant 검색 호출이 실패해 MySQL 검색으로 전환했습니다. ${reason}`;
+  }
+  return `MySQL 검색으로 보완했습니다. ${reason}`;
 }
 
 function renderDiagnostics(data) {
@@ -332,6 +346,9 @@ async function initDevConsole() {
   document.querySelectorAll("[data-admin-action]").forEach(button => {
     button.addEventListener("click", () => runAdminAction(button));
   });
+  document.querySelectorAll("[data-probe-source]").forEach(button => {
+    button.addEventListener("click", () => runSourceProbe(button));
+  });
   byId("vectorSearchForm").addEventListener("submit", event => {
     event.preventDefault();
     runVectorSearch();
@@ -360,8 +377,8 @@ async function loadDevStatus() {
 
 async function loadCollectionRuns() {
   const rows = await api.get("/api/dev/collection-runs?limit=20");
-  byId("collectionRuns").innerHTML = table(["출처", "상태", "수신", "신규", "갱신", "제외", "실패", "시작"],
-    rows.map(row => [row.source, row.status, row.receivedCount, row.insertedCount, row.updatedCount, row.skippedCount, row.failedCount, row.startedAt]));
+  byId("collectionRuns").innerHTML = table(["출처", "상태", "수신", "신규", "갱신", "제외", "실패", "오류", "시작"],
+    rows.map(row => [row.source, row.status, row.receivedCount, row.insertedCount, row.updatedCount, row.skippedCount, row.failedCount, row.representativeError, row.startedAt]));
 }
 
 async function runAdminAction(button) {
@@ -377,7 +394,7 @@ async function runAdminAction(button) {
   result.textContent = "작업 실행 중입니다.";
   try {
     const data = await api.post(button.dataset.adminAction, {}, {"X-Admin-Key": key});
-    result.textContent = `작업 완료: ${typeof data === "object" ? JSON.stringify(data) : data}`;
+    result.innerHTML = renderAdminActionResult(data);
     await loadDevStatus();
     await loadCollectionRuns();
   } catch (e) {
@@ -385,6 +402,89 @@ async function runAdminAction(button) {
   } finally {
     button.disabled = false;
   }
+}
+
+function renderAdminActionResult(data) {
+  if (Array.isArray(data)) {
+    return collectionResultTable(data);
+  }
+  if (typeof data === "object" && data) {
+    if ("source" in data) {
+      return collectionResultTable([data]);
+    }
+    if ("activePolicyCount" in data || "pendingCountAfter" in data) {
+      return table(["항목", "값"], [
+        ["활성 정책", number(data.activePolicyCount)],
+        ["신규 대기열", number(data.newlyQueuedCount)],
+        ["재등록", number(data.requeuedCount)],
+        ["변경 없음", number(data.unchangedCount)],
+        ["비활성 처리", number(data.deactivatedCount)],
+        ["등록 실패", number(data.failedCount)],
+        ["PENDING", number(data.pendingCountAfter)],
+        ["대표 오류", data.representativeError]
+      ]);
+    }
+    if ("processedCount" in data || "remainingPendingCount" in data) {
+      return table(["항목", "값"], [
+        ["전체 대상", number(data.totalTargetCount)],
+        ["처리 완료", number(data.processedCount)],
+        ["성공", number(data.successCount)],
+        ["실패", number(data.failedCount)],
+        ["남은 PENDING", number(data.remainingPendingCount)],
+        ["현재 배치", number(data.currentBatch)],
+        ["소요 시간", `${number(data.elapsedTimeMs)}ms`]
+      ]);
+    }
+    return `<pre class="json-block">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+  }
+  return `작업 완료: ${escapeHtml(data)}`;
+}
+
+async function runSourceProbe(button) {
+  const key = byId("adminKey").value.trim();
+  const result = byId("probeResult");
+  if (!key) {
+    result.innerHTML = `<p class="empty-state">관리자 키를 입력하세요.</p>`;
+    return;
+  }
+  button.disabled = true;
+  result.innerHTML = `<p class="empty-state">연결 진단 중입니다.</p>`;
+  try {
+    const data = await api.post(`/api/dev/policy-sources/${button.dataset.probeSource}/probe`, {}, {"X-Admin-Key": key});
+    result.innerHTML = table(["항목", "값"], [
+      ["출처", data.source],
+      ["실제 호출 여부", data.actuallyCalled ? "예" : "아니오"],
+      ["마스킹된 URL", data.maskedRequestUrl],
+      ["HTTP 상태", data.httpStatus],
+      ["Content-Type", data.contentType],
+      ["응답 형식", data.responseType || responseFormat(data.contentType, data.responsePreview)],
+      ["목록 노드 확인 여부", data.listNodeFound ? "예" : "아니오"],
+      ["전체 건수", data.totalCount],
+      ["파싱된 건수", data.parsedCount],
+      ["첫 정책 ID", data.firstPolicyId],
+      ["첫 번째 정책명", data.firstPolicyName],
+      ["오류 코드", data.errorCode],
+      ["오류 메시지", data.errorMessage],
+      ["응답 미리보기", data.responsePreview]
+    ]);
+  } catch (e) {
+    result.innerHTML = `<p class="empty-state">${escapeHtml(e.message)}</p>`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function collectionResultTable(rows) {
+  return `<div class="collection-result-wrapper">${table(["출처", "상태", "요청", "수신", "신규", "갱신", "제외", "실패", "오류"],
+    rows.map(row => [row.source, row.failedCount > 0 ? "FAILED" : "SUCCESS", row.apiRequestCount, row.receivedCount,
+      row.insertedCount, row.updatedCount, row.skippedCount, row.failedCount, row.representativeError]))}</div>`;
+}
+
+function responseFormat(contentType, preview) {
+  const value = `${contentType || ""} ${preview || ""}`.trim().toLowerCase();
+  if (value.includes("json") || value.startsWith("{") || value.startsWith("[")) return "JSON";
+  if (value.includes("xml") || value.startsWith("<")) return "XML/HTML";
+  return "";
 }
 
 async function runVectorSearch() {
@@ -411,7 +511,7 @@ function selectField(labelText, id, selected, options) {
 
 function table(headers, rows) {
   if (!rows.length) return `<p class="empty-state">표시할 데이터가 없습니다.</p>`;
-  return `<table><thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell ?? "")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return `<table class="collection-result-table"><thead><tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell ?? "")}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
 }
 
 function label(value) { return labelMap[value] || value || "확인 필요"; }

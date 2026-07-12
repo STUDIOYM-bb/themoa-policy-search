@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PolicySearchService {
-    private static final int DEFAULT_VECTOR_TOP_K = 30;
     private static final int FALLBACK_LIMIT = 100;
 
     private final PolicyQueryParser parser;
@@ -44,6 +43,8 @@ public class PolicySearchService {
     private final PolicyEligibilityEvaluator eligibilityEvaluator;
     private final PolicyApplicationStatusCalculator applicationStatusCalculator;
     private final boolean ragEnabled;
+    private final int searchTopK;
+    private final int retryTopK;
 
     public PolicySearchService(PolicyQueryParser parser,
                                QdrantPolicyRetrievalService qdrantRetrievalService,
@@ -52,7 +53,9 @@ public class PolicySearchService {
                                PolicyBookmarkRepository bookmarkRepository,
                                PolicyEligibilityEvaluator eligibilityEvaluator,
                                PolicyApplicationStatusCalculator applicationStatusCalculator,
-                               @Value("${app.rag.enabled:false}") boolean ragEnabled) {
+                               @Value("${app.rag.enabled:false}") boolean ragEnabled,
+                               @Value("${app.rag.search.top-k:50}") int searchTopK,
+                               @Value("${app.rag.search.retry-top-k:150}") int retryTopK) {
         this.parser = parser;
         this.qdrantRetrievalService = qdrantRetrievalService;
         this.mysqlFallbackPolicyRetrievalService = mysqlFallbackPolicyRetrievalService;
@@ -61,6 +64,8 @@ public class PolicySearchService {
         this.eligibilityEvaluator = eligibilityEvaluator;
         this.applicationStatusCalculator = applicationStatusCalculator;
         this.ragEnabled = ragEnabled;
+        this.searchTopK = Math.max(1, searchTopK);
+        this.retryTopK = Math.max(this.searchTopK, retryTopK);
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +74,7 @@ public class PolicySearchService {
         PolicyQueryParseResult parseResult = parser.parseQuery(request.query());
         PolicySearchCondition condition = parseResult.condition();
         applySupplemental(condition, request.supplementalConditions());
+        normalizeParsedCondition(condition);
 
         List<String> globalMissing = globalMissing(condition);
         boolean needsMore = globalMissing.size() >= 4;
@@ -82,26 +88,33 @@ public class PolicySearchService {
         }
 
         PolicyRetrievalResult retrieval = retrieve(request, condition);
-        Map<Integer, PolicyRetrievalCandidate> candidateMap = retrieval.candidates().stream()
-                .collect(Collectors.toMap(PolicyRetrievalCandidate::policyId, Function.identity(),
-                        (left, right) -> left, LinkedHashMap::new));
-        List<Integer> orderedIds = new ArrayList<>(candidateMap.keySet());
-        List<Policy> policies = orderedIds.isEmpty()
-                ? List.of()
-                : orderByCandidate(policyRepository.findAllDetailedByIdIn(orderedIds), orderedIds);
+        SearchAssembly assembled = assembleResults(retrieval, condition, memberId);
+        boolean retriedWithLargerTopK = false;
+        boolean mysqlFallbackUsed = false;
 
-        List<PolicyResultItem> filtered = new ArrayList<>();
-        for (Policy policy : policies) {
-            PolicyEligibilityEvaluator.Evaluation evaluation = eligibilityEvaluator.evaluate(policy, condition);
-            if (!policy.isActive() || evaluation.unmatchedConditions().contains("region")
-                    || targetClearlyMismatched(policy, condition, evaluation)) {
-                continue;
+        if (assembled.filtered().size() < request.size() && ragEnabled && retrieval.ragSucceeded()) {
+            try {
+                PolicyRetrievalResult retryRetrieval = qdrantRetrievalService.retrieve(request.query(), retryTopK);
+                if (retryRetrieval.vectorCandidateCount() > retrieval.vectorCandidateCount()) {
+                    retrieval = retryRetrieval;
+                    assembled = assembleResults(retrieval, condition, memberId);
+                    retriedWithLargerTopK = true;
+                }
+            } catch (RuntimeException ignored) {
+                retriedWithLargerTopK = true;
             }
-            PolicyRetrievalCandidate candidate = candidateMap.get(policy.getId());
-            filtered.add(toResult(policy, condition, evaluation, candidate == null ? null : candidate.semanticScore(), memberId));
         }
 
-        List<PolicyResultItem> sorted = filtered.stream()
+        if (assembled.filtered().size() < request.size()) {
+            PolicyRetrievalResult fallback = mysqlFallbackPolicyRetrievalService.retrieve(request.query(), condition, FALLBACK_LIMIT,
+                    "필터 후 결과가 부족하여 MySQL 조건 검색을 보완 사용했습니다.");
+            List<PolicyRetrievalCandidate> mergedCandidates = mergeCandidates(retrieval.candidates(), fallback.candidates());
+            retrieval = retrieval.withMysqlFallback(fallback.fallbackReason(), fallback.databaseCandidateCount(), mergedCandidates);
+            assembled = assembleResults(retrieval, condition, memberId);
+            mysqlFallbackUsed = true;
+        }
+
+        List<PolicyResultItem> sorted = assembled.filtered().stream()
                 .sorted(resultComparator())
                 .toList();
         int from = Math.min(request.page() * request.size(), sorted.size());
@@ -115,8 +128,10 @@ public class PolicySearchService {
                 followUps(globalMissing), parseResult.parserMode().name(), parseResult.fallback(),
                 parseResult.fallbackReason(), retrieval.searchMode().name(), retrieval.ragAttempted(),
                 retrieval.ragSucceeded(), retrieval.fallback(), retrieval.fallbackReason(),
-                retrieval.vectorCandidateCount(), policies.size(), filtered.size(), elapsedMillis(startedAt),
-                message, pageResults, request.page(), request.size(), filtered.size());
+                retrieval.vectorCandidateCount(), assembled.policies().size(), assembled.filtered().size(), elapsedMillis(startedAt),
+                message, pageResults, request.page(), request.size(), assembled.filtered().size(),
+                assembled.regionFilteredCount(), assembled.targetFilteredCount(), retrieval.vectorCandidateCount(),
+                pageResults.size(), retriedWithLargerTopK, mysqlFallbackUsed);
     }
 
     @Transactional(readOnly = true)
@@ -132,7 +147,7 @@ public class PolicySearchService {
     }
 
     private PolicyRetrievalResult retrieve(PolicySearchRequest request, PolicySearchCondition condition) {
-        int topK = Math.max(DEFAULT_VECTOR_TOP_K, request.size() * 3);
+        int topK = Math.max(searchTopK, request.size() * 3);
         if (ragEnabled) {
             try {
                 PolicyRetrievalResult ragResult = qdrantRetrievalService.retrieve(request.query(), topK);
@@ -163,6 +178,50 @@ public class PolicySearchService {
                 applicationStatus, evaluation.status(), evaluation.matchedConditions(), evaluation.missingConditions(),
                 evaluation.unmatchedConditions(), recommendationReason(evaluation), safeUrl(policy.getOfficialUrl()),
                 semanticScore, bookmarked);
+    }
+
+    private SearchAssembly assembleResults(PolicyRetrievalResult retrieval, PolicySearchCondition condition, Integer memberId) {
+        Map<Integer, PolicyRetrievalCandidate> candidateMap = retrieval.candidates().stream()
+                .collect(Collectors.toMap(PolicyRetrievalCandidate::policyId, Function.identity(),
+                        (left, right) -> left, LinkedHashMap::new));
+        List<Integer> orderedIds = new ArrayList<>(candidateMap.keySet());
+        List<Policy> policies = orderedIds.isEmpty()
+                ? List.of()
+                : orderByCandidate(policyRepository.findAllDetailedByIdIn(orderedIds), orderedIds);
+
+        List<PolicyResultItem> filtered = new ArrayList<>();
+        int regionFilteredCount = 0;
+        int targetFilteredCount = 0;
+        for (Policy policy : policies) {
+            PolicyEligibilityEvaluator.Evaluation evaluation = eligibilityEvaluator.evaluate(policy, condition);
+            if (!policy.isActive() || evaluation.unmatchedConditions().contains("region")) {
+                continue;
+            }
+            regionFilteredCount++;
+            if (targetClearlyMismatched(policy, condition, evaluation)) {
+                continue;
+            }
+            targetFilteredCount++;
+            PolicyRetrievalCandidate candidate = candidateMap.get(policy.getId());
+            filtered.add(toResult(policy, condition, evaluation, candidate == null ? null : candidate.semanticScore(), memberId));
+        }
+        return new SearchAssembly(policies, filtered, regionFilteredCount, targetFilteredCount);
+    }
+
+    private List<PolicyRetrievalCandidate> mergeCandidates(List<PolicyRetrievalCandidate> first,
+                                                           List<PolicyRetrievalCandidate> second) {
+        Map<Integer, PolicyRetrievalCandidate> merged = new LinkedHashMap<>();
+        for (PolicyRetrievalCandidate candidate : first) {
+            merged.putIfAbsent(candidate.policyId(), candidate);
+        }
+        for (PolicyRetrievalCandidate candidate : second) {
+            merged.putIfAbsent(candidate.policyId(), candidate);
+        }
+        return new ArrayList<>(merged.values());
+    }
+
+    private record SearchAssembly(List<Policy> policies, List<PolicyResultItem> filtered,
+                                  int regionFilteredCount, int targetFilteredCount) {
     }
 
     private List<Policy> orderByCandidate(List<Policy> policies, List<Integer> orderedIds) {
@@ -247,6 +306,15 @@ public class PolicySearchService {
         if (hasText(supplemental.get("housingStatus"))) condition.setHousingStatus(supplemental.get("housingStatus"));
         if (hasText(supplemental.get("householdStatus"))) condition.setHouseholdStatus(supplemental.get("householdStatus"));
         if (hasText(supplemental.get("category"))) condition.setCategory(supplemental.get("category"));
+    }
+
+    private void normalizeParsedCondition(PolicySearchCondition condition) {
+        if (condition.getAge() != null && condition.getAge() <= 0) {
+            condition.setAge(null);
+        }
+        if (condition.getRegion() != null && condition.getRegion().isBlank()) {
+            condition.setRegion(null);
+        }
     }
 
     private boolean hasText(String value) {

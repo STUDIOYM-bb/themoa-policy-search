@@ -15,7 +15,13 @@ import org.springframework.data.repository.query.Param;
 public interface PolicyRepository extends JpaRepository<Policy, Integer> {
     long countByActiveTrue();
 
+    @EntityGraph(attributePaths = {"condition", "regions", "regions.region"})
+    List<Policy> findAllByActiveTrue();
+
     Optional<Policy> findBySourceTypeAndSourcePolicyId(PolicySource sourceType, String sourcePolicyId);
+
+    @EntityGraph(attributePaths = {"condition", "regions", "regions.region"})
+    List<Policy> findAllBySourceTypeIn(Collection<PolicySource> sourceTypes);
 
     @EntityGraph(attributePaths = {"condition", "regions", "regions.region"})
     @Query("select distinct p from Policy p left join p.regions pr left join pr.region r where p.id in :ids")

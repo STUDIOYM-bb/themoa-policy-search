@@ -15,6 +15,15 @@ class PolicyNormalizersTest {
     }
 
     @Test
+    void regionNormalizerDoesNotTreatAgencyAsRegion() {
+        RegionNormalizer normalizer = new RegionNormalizer();
+        assertThat(normalizer.normalize("농림축산식품부 중앙행정기관")).isEmpty();
+        assertThat(normalizer.normalize("보건복지부")).isEmpty();
+        assertThat(normalizer.normalize("경기도 수원시")).containsExactly("경기도 수원시");
+        assertThat(normalizer.normalize("전국")).containsExactly("전국");
+    }
+
+    @Test
     void categoryNormalizerMapsKeywords() {
         CategoryNormalizer normalizer = new CategoryNormalizer();
         assertThat(normalizer.normalize("청년 월세 지원")).isEqualTo(PolicyCategory.주거);

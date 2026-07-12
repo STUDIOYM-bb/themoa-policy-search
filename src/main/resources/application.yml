@@ -53,26 +53,55 @@ app:
     auto-create-collection: ${QDRANT_AUTO_CREATE_COLLECTION:false}
     openai-chat-model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
     openai-embedding-model: ${OPENAI_EMBEDDING_MODEL:text-embedding-3-small}
+    embedding:
+      batch-size: ${RAG_EMBEDDING_BATCH_SIZE:100}
+      max-batches-per-run: ${RAG_EMBEDDING_MAX_BATCHES_PER_RUN:1000}
+      request-delay: ${RAG_EMBEDDING_REQUEST_DELAY:50ms}
+    search:
+      top-k: ${RAG_SEARCH_TOP_K:50}
+      retry-top-k: ${RAG_SEARCH_RETRY_TOP_K:150}
+      minimum-similarity: ${RAG_MINIMUM_SIMILARITY:0.50}
   policy:
     collection:
       enabled: ${POLICY_COLLECTION_ENABLED:false}
       cron: ${POLICY_COLLECTION_CRON:0 0 3 * * *}
       page-size: ${POLICY_COLLECTION_PAGE_SIZE:100}
+      max-pages: ${POLICY_COLLECTION_MAX_PAGES:1000}
       request-delay: ${POLICY_COLLECTION_REQUEST_DELAY:500ms}
+      detail-request-delay: ${POLICY_DETAIL_REQUEST_DELAY:100ms}
+      detail-max-concurrency: ${POLICY_DETAIL_MAX_CONCURRENCY:3}
       max-retries: ${POLICY_COLLECTION_MAX_RETRIES:3}
       connect-timeout: ${POLICY_COLLECTION_CONNECT_TIMEOUT:3s}
       read-timeout: ${POLICY_COLLECTION_READ_TIMEOUT:10s}
+      sources:
+        youth-center-enabled: ${YOUTH_CENTER_COLLECTION_ENABLED:false}
+        gov-service-enabled: ${GOV_SERVICE_COLLECTION_ENABLED:true}
+        local-welfare-enabled: ${LOCAL_WELFARE_COLLECTION_ENABLED:true}
+        central-welfare-enabled: ${CENTRAL_WELFARE_COLLECTION_ENABLED:true}
       youth-center:
         base-url: ${YOUTH_CENTER_BASE_URL:https://www.youthcenter.go.kr}
+        list-path: ${YOUTH_CENTER_LIST_PATH:/opi/youthPlcyList.do}
+        detail-path: ${YOUTH_CENTER_DETAIL_PATH:}
+        response-format: JSON
         api-key: ${YOUTH_CENTER_API_KEY:}
       gov-service:
-        base-url: ${GOV_SERVICE_BASE_URL:http://apis.data.go.kr}
+        base-url: ${GOV_SERVICE_BASE_URL:https://api.odcloud.kr/api}
+        list-path: ${GOV_SERVICE_LIST_PATH:/gov24/v3/serviceList}
+        detail-path: ${GOV_SERVICE_DETAIL_PATH:/gov24/v3/serviceDetail}
+        support-conditions-path: ${GOV_SERVICE_SUPPORT_CONDITIONS_PATH:/gov24/v3/supportConditions}
+        response-format: JSON
         api-key: ${GOV_SERVICE_API_KEY:}
       local-welfare:
-        base-url: ${LOCAL_WELFARE_BASE_URL:http://apis.data.go.kr}
+        base-url: ${LOCAL_WELFARE_BASE_URL:https://apis.data.go.kr/B554287/LocalGovernmentWelfareInformations}
+        list-path: ${LOCAL_WELFARE_LIST_PATH:/LcgvWelfarelist}
+        detail-path: ${LOCAL_WELFARE_DETAIL_PATH:/LcgvWelfaredetailed}
+        response-format: XML
         api-key: ${LOCAL_WELFARE_API_KEY:}
       central-welfare:
-        base-url: ${CENTRAL_WELFARE_BASE_URL:http://apis.data.go.kr}
+        base-url: ${CENTRAL_WELFARE_BASE_URL:https://apis.data.go.kr/B554287/NationalWelfareInformationsV001}
+        list-path: ${CENTRAL_WELFARE_LIST_PATH:/NationalWelfarelistV001}
+        detail-path: ${CENTRAL_WELFARE_DETAIL_PATH:/NationalWelfaredetailedV001}
+        response-format: XML
         api-key: ${CENTRAL_WELFARE_API_KEY:}
 
 logging:

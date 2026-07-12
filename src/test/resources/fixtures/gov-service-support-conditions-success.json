@@ -1,0 +1,19 @@
+{
+  "page": 1,
+  "perPage": 1,
+  "totalCount": 1,
+  "currentCount": 1,
+  "matchCount": 1,
+  "data": [
+    {
+      "서비스ID": "GOV-1",
+      "서비스명": "공공서비스 혜택 상세",
+      "JA0110": 19,
+      "JA0111": 34,
+      "JA0203": "Y",
+      "JA0320": "Y",
+      "JA0327": "Y",
+      "JA0412": "Y"
+    }
+  ]
+}

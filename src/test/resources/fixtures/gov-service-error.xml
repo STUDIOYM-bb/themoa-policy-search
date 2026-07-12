@@ -1,0 +1,6 @@
+<OpenAPI_ServiceResponse>
+  <cmmMsgHeader>
+    <returnAuthMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</returnAuthMsg>
+    <returnReasonCode>30</returnReasonCode>
+  </cmmMsgHeader>
+</OpenAPI_ServiceResponse>

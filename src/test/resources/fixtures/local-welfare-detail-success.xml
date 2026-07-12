@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wantedDtl>
+  <servId>L-1</servId>
+  <servNm>지역 복지 서비스</servNm>
+  <jurMnofNm>수원시</jurMnofNm>
+  <sprtTrgtCn>수원시민</sprtTrgtCn>
+  <slctCritCn>소득 기준 충족</slctCritCn>
+  <servDgst>지역 복지 상세</servDgst>
+  <aplyMtdCn>방문 신청</aplyMtdCn>
+  <sbmsnDcmntCn>신분증</sbmsnDcmntCn>
+  <aplyPrdCn>상시</aplyPrdCn>
+  <inqNum>031-0000-0000</inqNum>
+</wantedDtl>

@@ -10,6 +10,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,14 +18,26 @@ import org.springframework.stereotype.Service;
 public class QdrantPolicyRetrievalService {
     private final ObjectProvider<VectorStore> vectorStoreProvider;
     private final boolean ragEnabled;
+    private final double minimumSimilarity;
 
+    @Autowired
     public QdrantPolicyRetrievalService(ObjectProvider<VectorStore> vectorStoreProvider,
-                                        @Value("${app.rag.enabled:false}") boolean ragEnabled) {
+                                        @Value("${app.rag.enabled:false}") boolean ragEnabled,
+                                        @Value("${app.rag.search.minimum-similarity:0.50}") double minimumSimilarity) {
         this.vectorStoreProvider = vectorStoreProvider;
         this.ragEnabled = ragEnabled;
+        this.minimumSimilarity = minimumSimilarity;
+    }
+
+    QdrantPolicyRetrievalService(ObjectProvider<VectorStore> vectorStoreProvider, boolean ragEnabled) {
+        this(vectorStoreProvider, ragEnabled, 0.50d);
     }
 
     public PolicyRetrievalResult retrieve(String query, int topK) {
+        return retrieve(query, topK, minimumSimilarity);
+    }
+
+    public PolicyRetrievalResult retrieve(String query, int topK, double similarityThreshold) {
         Instant startedAt = Instant.now();
         if (!ragEnabled) {
             throw new IllegalStateException("RAG가 비활성화되어 있습니다.");
@@ -36,7 +49,7 @@ public class QdrantPolicyRetrievalService {
         SearchRequest request = SearchRequest.builder()
                 .query(query)
                 .topK(topK)
-                .similarityThresholdAll()
+                .similarityThreshold(similarityThreshold)
                 .build();
         List<Document> documents = vectorStore.similaritySearch(request);
         List<PolicyRetrievalCandidate> candidates = new ArrayList<>();

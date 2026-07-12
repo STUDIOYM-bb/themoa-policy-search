@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wantedList>
+  <totalCount>1</totalCount>
+  <pageNo>1</pageNo>
+  <numOfRows>10</numOfRows>
+  <resultCode>0</resultCode>
+  <resultMessage>SUCCESS</resultMessage>
+  <servList>
+    <servId>C-1</servId>
+    <servNm>중앙 복지 서비스</servNm>
+    <jurMnofNm>보건복지부</jurMnofNm>
+    <lifeNmArray>청년</lifeNmArray>
+    <intrsThemaNmArray>생활지원</intrsThemaNmArray>
+    <servDgst>중앙 복지 요약</servDgst>
+    <servDtlLink>https://example.test/central/C-1</servDtlLink>
+  </servList>
+</wantedList>

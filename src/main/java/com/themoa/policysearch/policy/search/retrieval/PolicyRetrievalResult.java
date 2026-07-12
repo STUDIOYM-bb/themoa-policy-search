@@ -24,6 +24,12 @@ public record PolicyRetrievalResult(
                 0, databaseCandidateCount, elapsedTimeMs, candidates);
     }
 
+    public PolicyRetrievalResult withMysqlFallback(String reason, int databaseCandidateCount,
+                                                   List<PolicyRetrievalCandidate> mergedCandidates) {
+        return new PolicyRetrievalResult(PolicySearchMode.RAG_WITH_MYSQL_FALLBACK, ragAttempted, ragSucceeded, true,
+                reason, vectorCandidateCount, databaseCandidateCount, elapsedTimeMs, mergedCandidates);
+    }
+
     public PolicyRetrievalResult withRagAttempt(boolean ragSucceeded, int vectorCandidateCount) {
         return new PolicyRetrievalResult(searchMode, true, ragSucceeded, fallback, fallbackReason,
                 vectorCandidateCount, databaseCandidateCount, elapsedTimeMs, candidates);

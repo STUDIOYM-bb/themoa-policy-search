@@ -1,0 +1,19 @@
+{
+  "totalCnt": 1,
+  "youthPolicyList": [
+    {
+      "plcyNo": "YC-1",
+      "plcyNm": "청년 월세 지원",
+      "sprvsnInstCdNm": "서울특별시",
+      "zipCd": "서울특별시",
+      "plcyKywdNm": "주거",
+      "sprtTrgtCn": "19세 이상 34세 이하 청년",
+      "plcySprtCn": "월세 지원",
+      "aplyQlfcCn": "소득 기준 충족",
+      "aplyMthdCn": "온라인 신청",
+      "aplyYmd": "상시",
+      "refUrlAddr1": "https://example.test/youth",
+      "inqryTelno": "02-0000-0000"
+    }
+  ]
+}

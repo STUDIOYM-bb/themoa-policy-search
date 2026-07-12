@@ -70,6 +70,10 @@ public class Policy {
     }
 
     public void replaceCondition(PolicyCondition condition) {
+        if (this.condition != null) {
+            this.condition.updateFrom(condition);
+            return;
+        }
         this.condition = condition;
         condition.attachPolicy(this);
     }
